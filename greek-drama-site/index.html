@@ -1,0 +1,1428 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DIONYSIA · 古希腊戏剧全书与互动剧场 (V3.0 AI角色互动版)</title>
+  <style>
+    :root {
+      --bg-obsidian: #12100e;
+      --bg-panel: #1e1a17;
+      --terracotta: #d96b27;
+      --terracotta-light: #f08c4b;
+      --marble: #f4efe6;
+      --marble-muted: #a89f91;
+      --gold: #d4af37;
+      --danger: #c94a4a;
+      --success: #5a9e6f;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg-obsidian);
+      color: var(--marble);
+      font-family: "PingFang SC", "Microsoft YaHei", serif;
+      line-height: 1.6;
+    }
+
+    header {
+      background: linear-gradient(180deg, #261e18 0%, var(--bg-obsidian) 100%);
+      border-bottom: 3px double var(--terracotta);
+      padding: 1.5rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .brand h1 { color: var(--terracotta); font-size: 1.8rem; letter-spacing: 2px; }
+    .brand p { color: var(--marble-muted); font-size: 0.9rem; }
+    nav { display: flex; gap: 0.8rem; flex-wrap: wrap; }
+    .nav-btn {
+      background: transparent;
+      border: 1px solid var(--terracotta);
+      color: var(--marble);
+      padding: 0.6rem 1.1rem;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 0.92rem;
+      transition: all 0.25s;
+    }
+    .nav-btn.active, .nav-btn:hover {
+      background: var(--terracotta);
+      color: var(--bg-obsidian);
+      font-weight: bold;
+    }
+
+    main { max-width: 1240px; margin: 2rem auto; padding: 0 1.5rem; }
+    .tab-section { display: none; animation: fadeIn 0.3s ease; }
+    .tab-section.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* 全景剧场交互区 */
+    .theater-interactive {
+      background: var(--bg-panel);
+      border: 1px solid #3a322c;
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      align-items: center;
+    }
+    @media (max-width: 768px) { .theater-interactive { grid-template-columns: 1fr; } }
+    .theater-svg-box { text-align: center; }
+    .theater-zone { cursor: pointer; transition: opacity 0.2s; }
+    .theater-zone:hover { opacity: 0.85; stroke: var(--gold); stroke-width: 2px; }
+    .zone-info-box {
+      background: #161311;
+      border-left: 4px solid var(--terracotta);
+      padding: 1.2rem;
+      border-radius: 4px;
+    }
+    .zone-info-box h3 { color: var(--terracotta-light); margin-bottom: 0.5rem; }
+
+    /* 搜索与筛选工具栏 */
+    .library-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .search-input {
+      background: var(--bg-panel);
+      border: 1px solid var(--terracotta);
+      color: var(--marble);
+      padding: 0.6rem 1rem;
+      border-radius: 6px;
+      width: 320px;
+      max-width: 100%;
+      font-size: 0.9rem;
+    }
+    .search-input:focus { outline: 2px solid var(--gold); }
+    .count-badge {
+      background: #2b2119;
+      border: 1px solid var(--gold);
+      color: var(--gold);
+      padding: 0.3rem 0.8rem;
+      border-radius: 4px;
+      font-size: 0.85rem;
+    }
+
+    .filter-bar { display: flex; gap: 0.6rem; margin-bottom: 1.2rem; flex-wrap: wrap; }
+    .filter-chip {
+      background: var(--bg-panel);
+      border: 1px solid #4a3f37;
+      color: var(--marble-muted);
+      padding: 0.45rem 0.95rem;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.2s;
+    }
+    .filter-chip.active, .filter-chip:hover {
+      border-color: var(--gold);
+      color: var(--gold);
+      background: #2c241d;
+    }
+
+    /* 45部剧目卡片网格 */
+    .plays-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.1rem;
+    }
+    .play-card {
+      background: var(--bg-panel);
+      border: 1px solid #332b25;
+      padding: 1.2rem;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .play-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--terracotta);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.45);
+    }
+    .card-top-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+    .play-tag {
+      font-size: 0.75rem;
+      padding: 0.15rem 0.55rem;
+      border-radius: 3px;
+      background: #33241b;
+      color: var(--terracotta-light);
+    }
+    .play-id { font-size: 0.78rem; color: var(--marble-muted); font-family: monospace; }
+    .play-card h4 { font-size: 1.12rem; margin-bottom: 0.2rem; color: var(--marble); }
+    .play-en { font-size: 0.78rem; color: var(--marble-muted); font-style: italic; margin-bottom: 0.4rem; }
+    .play-author { font-size: 0.84rem; color: var(--gold); margin-bottom: 0.6rem; }
+    .play-desc { font-size: 0.86rem; color: var(--marble-muted); margin-bottom: 0.8rem; }
+    .read-more-hint {
+      font-size: 0.8rem;
+      color: var(--terracotta-light);
+      text-align: right;
+      border-top: 1px dashed #332b25;
+      padding-top: 0.5rem;
+    }
+
+    /* 剧目详情弹窗 */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(10, 8, 6, 0.85);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      padding: 1.5rem;
+    }
+    .modal-overlay.open { display: flex; animation: fadeIn 0.2s ease; }
+    .modal-box {
+      background: var(--bg-panel);
+      border: 2px solid var(--terracotta);
+      border-radius: 8px;
+      max-width: 720px;
+      width: 100%;
+      max-height: 88vh;
+      overflow-y: auto;
+      padding: 2rem;
+      position: relative;
+      box-shadow: 0 12px 36px rgba(0,0,0,0.8);
+    }
+    .modal-close {
+      position: absolute;
+      top: 1.2rem; right: 1.2rem;
+      background: #2d241e;
+      border: 1px solid var(--terracotta);
+      color: var(--marble);
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 1.1rem;
+    }
+    .modal-close:hover { background: var(--terracotta); color: var(--bg-obsidian); }
+    .modal-section {
+      background: #151210;
+      border-left: 3px solid var(--gold);
+      padding: 1rem 1.2rem;
+      border-radius: 4px;
+      margin-top: 1rem;
+    }
+    .modal-section h5 { color: var(--gold); font-size: 0.95rem; margin-bottom: 0.4rem; }
+
+    /* 游戏一 & 游戏二 */
+    .game-container {
+      background: var(--bg-panel);
+      border: 2px solid var(--terracotta);
+      border-radius: 8px;
+      padding: 2rem;
+      max-width: 860px;
+      margin: 0 auto;
+    }
+    .meters-bar {
+      display: flex;
+      justify-content: space-around;
+      background: #14110f;
+      padding: 1rem;
+      border-radius: 6px;
+      margin-bottom: 1.5rem;
+      border: 1px solid #332b25;
+    }
+    .meter-item { width: 42%; }
+    .meter-label { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.4rem; }
+    .meter-track { background: #2d2620; height: 10px; border-radius: 5px; overflow: hidden; }
+    .meter-fill { height: 100%; transition: width 0.4s ease; }
+    .story-box { font-size: 1.05rem; margin-bottom: 1.5rem; min-height: 100px; }
+    .theory-note {
+      background: #292018;
+      border: 1px dashed var(--gold);
+      padding: 0.8rem 1rem;
+      border-radius: 4px;
+      color: var(--gold);
+      font-size: 0.9rem;
+      margin-bottom: 1.5rem;
+    }
+    .choices-box { display: flex; flex-direction: column; gap: 0.8rem; }
+    .choice-btn {
+      background: #2b231d;
+      border: 1px solid var(--terracotta);
+      color: var(--marble);
+      padding: 0.9rem 1.2rem;
+      text-align: left;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: background 0.2s;
+    }
+    .choice-btn:hover { background: var(--terracotta); color: var(--bg-obsidian); font-weight: bold; }
+
+    .workshop-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 1.2rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid #382f29;
+    }
+    .level-pills { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+    .level-pill {
+      background: #151210;
+      border: 1px solid #4a3f37;
+      color: var(--marble-muted);
+      padding: 0.4rem 0.9rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+    .level-pill.active {
+      border-color: var(--gold);
+      color: var(--bg-obsidian);
+      background: var(--gold);
+      font-weight: bold;
+    }
+    .task-banner {
+      background: #161311;
+      border-left: 4px solid var(--gold);
+      padding: 1rem 1.2rem;
+      border-radius: 4px;
+      margin-bottom: 1.5rem;
+    }
+    .workshop-grid {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 1.5rem;
+      align-items: start;
+    }
+    @media (max-width: 768px) { .workshop-grid { grid-template-columns: 1fr; } }
+    .actor-preview-card {
+      background: #14110f;
+      border: 1px solid #382f29;
+      border-radius: 8px;
+      padding: 1.2rem;
+      text-align: center;
+    }
+    .config-group { margin-bottom: 1.2rem; }
+    .config-group h4 { color: var(--terracotta-light); font-size: 0.95rem; margin-bottom: 0.6rem; }
+    .option-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 0.7rem;
+    }
+    .opt-card {
+      background: #161311;
+      border: 1px solid #3a312a;
+      padding: 0.7rem 0.9rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.2s;
+    }
+    .opt-card:hover { border-color: var(--terracotta-light); }
+    .opt-card.selected {
+      background: #2e2218;
+      border: 2px solid var(--terracotta);
+      color: var(--gold);
+      font-weight: bold;
+    }
+    .stage-action-btn {
+      width: 100%;
+      background: var(--terracotta);
+      color: var(--bg-obsidian);
+      border: none;
+      padding: 0.9rem;
+      font-size: 1rem;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 0.5rem;
+      transition: background 0.2s;
+    }
+    .stage-action-btn:hover { background: var(--terracotta-light); }
+    .audience-feedback {
+      margin-top: 1.2rem;
+      padding: 1rem 1.2rem;
+      border-radius: 6px;
+      display: none;
+    }
+    .audience-feedback.pass {
+      display: block;
+      background: rgba(90, 158, 111, 0.15);
+      border: 1px solid var(--success);
+      color: #a3e4b7;
+    }
+    .audience-feedback.fail {
+      display: block;
+      background: rgba(201, 74, 74, 0.15);
+      border: 1px solid var(--danger);
+      color: #f5a6a6;
+    }
+
+    /* 模块 4 (C阶段全面升级)：AI 角色与歌队互动剧场 */
+    .ai-config-bar {
+      background: #181411;
+      border: 1px solid #3a3028;
+      border-radius: 8px;
+      padding: 0.9rem 1.2rem;
+      margin-bottom: 1.2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.8rem;
+    }
+    .ai-status-dot {
+      display: inline-block;
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--gold);
+      margin-right: 6px;
+    }
+    .ai-status-dot.online { background: var(--success); box-shadow: 0 0 8px var(--success); }
+    .ai-drawer {
+      background: var(--bg-panel);
+      border: 1px dashed var(--gold);
+      border-radius: 8px;
+      padding: 1.2rem;
+      margin-bottom: 1.2rem;
+      display: none;
+    }
+    .ai-drawer.open { display: block; animation: fadeIn 0.2s ease; }
+    .api-form-row {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr 1.5fr auto;
+      gap: 0.8rem;
+      align-items: end;
+    }
+    @media (max-width: 900px) { .api-form-row { grid-template-columns: 1fr; } }
+    .form-field label { display: block; font-size: 0.8rem; color: var(--marble-muted); margin-bottom: 0.3rem; }
+    .form-field input {
+      width: 100%;
+      background: #12100e;
+      border: 1px solid #4a3f37;
+      color: var(--marble);
+      padding: 0.55rem 0.8rem;
+      border-radius: 4px;
+      font-size: 0.85rem;
+    }
+
+    .chat-layout { display: grid; grid-template-columns: 280px 1fr; gap: 1.5rem; }
+    @media (max-width: 820px) { .chat-layout { grid-template-columns: 1fr; } }
+    .char-list { display: flex; flex-direction: column; gap: 0.7rem; }
+    .char-card {
+      background: var(--bg-panel);
+      border: 1px solid #382f29;
+      padding: 0.9rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .char-card:hover { border-color: var(--terracotta-light); }
+    .char-card.active { border-color: var(--terracotta); background: #2c221b; }
+    .char-stage-tag {
+      display: inline-block;
+      font-size: 0.7rem;
+      padding: 0.1rem 0.45rem;
+      border-radius: 3px;
+      background: #38281e;
+      color: var(--gold);
+      margin-bottom: 0.25rem;
+    }
+
+    .chat-stage {
+      background: var(--bg-panel);
+      border: 1px solid #382f29;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      height: 600px;
+    }
+    .chat-mission {
+      background: #261d16;
+      padding: 0.8rem 1.2rem;
+      border-bottom: 1px solid #382f29;
+      font-size: 0.9rem;
+      color: var(--gold);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .chat-messages {
+      flex: 1;
+      padding: 1.2rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .msg { max-width: 86%; padding: 0.85rem 1.1rem; border-radius: 6px; font-size: 0.94rem; line-height: 1.6; }
+    .msg.npc { background: #2c241e; border-left: 3px solid var(--terracotta); align-self: flex-start; }
+    .msg.user { background: var(--terracotta); color: var(--bg-obsidian); font-weight: bold; align-self: flex-end; }
+    .msg.chorus {
+      background: #151210;
+      border: 1px solid var(--gold);
+      color: #d8cfc2;
+      font-style: italic;
+      align-self: center;
+      max-width: 94%;
+      font-size: 0.85rem;
+    }
+    .quick-prompts {
+      padding: 0.65rem 1.2rem;
+      border-top: 1px solid #2e2621;
+      background: #181412;
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .prompt-btn {
+      background: #2b231d;
+      border: 1px solid var(--gold);
+      color: var(--gold);
+      padding: 0.35rem 0.75rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      transition: all 0.2s;
+    }
+    .prompt-btn:hover { background: var(--gold); color: var(--bg-obsidian); }
+
+    /* 底部自由打字输入框 */
+    .chat-input-bar {
+      padding: 0.9rem 1.2rem;
+      border-top: 1px solid #382f29;
+      background: #14110f;
+      display: flex;
+      gap: 0.8rem;
+      border-radius: 0 0 8px 8px;
+    }
+    .chat-text-input {
+      flex: 1;
+      background: var(--bg-panel);
+      border: 1px solid var(--terracotta);
+      color: var(--marble);
+      padding: 0.65rem 1rem;
+      border-radius: 6px;
+      font-size: 0.95rem;
+    }
+    .chat-text-input:focus { outline: 2px solid var(--gold); }
+    .chat-send-btn {
+      background: var(--terracotta);
+      color: var(--bg-obsidian);
+      border: none;
+      padding: 0 1.4rem;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: background 0.2s;
+    }
+    .chat-send-btn:hover { background: var(--terracotta-light); }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <h1>ΔΙΟΝΥΣΙΑ · 雅典大酒神节</h1>
+      <p>古希腊现存全部 45 部传世戏剧典藏库 · 双游戏闯关与 AI 跨时空角色剧场</p>
+    </div>
+    <nav>
+      <button class="nav-btn active" onclick="switchTab('tab-library', this)">🏛️ 剧场与45部全剧库</button>
+      <button class="nav-btn" onclick="switchTab('tab-game', this)">⚖️ 游戏一：命运重写者</button>
+      <button class="nav-btn" onclick="switchTab('tab-workshop', this)">🎭 游戏二：面具与三演员工坊</button>
+      <button class="nav-btn" onclick="switchTab('tab-chat', this)">💬 AI 角色与歌队互动</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- 模块 1：全景剧场交互 + 45部全剧目库 -->
+    <section id="tab-library" class="tab-section active">
+      <div class="theater-interactive">
+        <div class="theater-svg-box">
+          <p style="color:var(--gold); margin-bottom:0.5rem; font-size:0.9rem;">👇 点击下方剧场结构，探索古希腊舞台奥秘</p>
+          <svg viewBox="0 0 400 260" width="100%" style="max-width:380px;">
+            <path class="theater-zone" d="M 30 200 A 170 170 0 0 1 370 200 L 310 200 A 110 110 0 0 0 90 200 Z" fill="#8c4a27" onclick="showZoneInfo('theatron')" />
+            <text x="200" y="75" fill="#f4efe6" font-size="13" text-anchor="middle" pointer-events="none">观众席 (Theatron)</text>
+            <circle class="theater-zone" cx="200" cy="185" r="55" fill="#d96b27" onclick="showZoneInfo('orchestra')" />
+            <text x="200" y="188" fill="#12100e" font-weight="bold" font-size="12" text-anchor="middle" pointer-events="none">乐池 (Orchestra)</text>
+            <rect class="theater-zone" x="40" y="208" width="80" height="16" fill="#d4af37" onclick="showZoneInfo('parodos')" />
+            <rect class="theater-zone" x="280" y="208" width="80" height="16" fill="#d4af37" onclick="showZoneInfo('parodos')" />
+            <text x="80" y="220" fill="#12100e" font-size="10" text-anchor="middle" pointer-events="none">入场道 (Parodos)</text>
+            <rect class="theater-zone" x="130" y="232" width="140" height="24" fill="#5c3c28" stroke="#d96b27" onclick="showZoneInfo('skene')" />
+            <text x="200" y="248" fill="#f4efe6" font-size="12" text-anchor="middle" pointer-events="none">景屋与后台 (Skene)</text>
+          </svg>
+        </div>
+        <div class="zone-info-box" id="zone-detail">
+          <h3>🏛️ 观众席 (Theatron - “观看之地”)</h3>
+          <p>古希腊剧场依山而建，可容纳上万名观众。前排石雕宝座专供酒神祭司与雅典执政官就座（Proedria）。剧场利用山坡倾角形成天然声学共鸣，哪怕演员在中心低语，最后一排也能听清。</p>
+          <p style="margin-top:0.6rem; color:var(--gold); font-size:0.85rem;">💡 趣味冷知识：雅典甚至设立了“观剧津贴（Theorika）”，由政府出钱补贴穷人买票看戏，因为看戏是公民参政与道德教育的一部分！</p>
+        </div>
+      </div>
+
+      <div class="library-toolbar">
+        <h3 style="color: var(--terracotta-light);">📜 古希腊传世戏剧全集（点击任意卡片打开典藏阅览室）</h3>
+        <div style="display:flex; gap:0.8rem; align-items:center; flex-wrap:wrap;">
+          <input type="text" id="search-box" class="search-input" placeholder="🔍 搜索剧名、人物（如奥德修斯）或考点..." oninput="applyFilters()">
+          <span class="count-badge" id="play-count-badge">已收录 45 / 45 部</span>
+        </div>
+      </div>
+
+      <div class="filter-bar">
+        <button class="filter-chip active" onclick="setAuthorFilter('all', this)">全部传世剧作 (45部)</button>
+        <button class="filter-chip" onclick="setAuthorFilter('埃斯库罗斯', this)">埃斯库罗斯 (7部)</button>
+        <button class="filter-chip" onclick="setAuthorFilter('索福克勒斯', this)">索福克勒斯 (7部)</button>
+        <button class="filter-chip" onclick="setAuthorFilter('欧里庇得斯', this)">欧里庇得斯 (19部)</button>
+        <button class="filter-chip" onclick="setAuthorFilter('阿里斯托芬', this)">阿里斯托芬 (11部)</button>
+        <button class="filter-chip" onclick="setAuthorFilter('米南德', this)">米南德 (1部)</button>
+      </div>
+
+      <div class="plays-grid" id="plays-container"></div>
+    </section>
+
+    <!-- 模块 2：游戏一《命运重写者》 -->
+    <section id="tab-game" class="tab-section">
+      <div class="game-container">
+        <h2 style="color:var(--terracotta); margin-bottom:0.5rem;">⚖️ 剧本杀闯关：《安提戈涅与城邦法令》</h2>
+        <p style="color:var(--marble-muted); font-size:0.9rem; margin-bottom:1.2rem;">扮演索福克勒斯笔下的女主角安提戈涅。在“神圣家庭伦理”与“城邦铁律”之间做出抉择，注意控制你的傲慢值（Hubris）！</p>
+        <div class="meters-bar">
+          <div class="meter-item">
+            <div class="meter-label"><span>🔥 傲慢与执念 (Hubris)</span><span id="hubris-val">30%</span></div>
+            <div class="meter-track"><div class="meter-fill" id="hubris-bar" style="width:30%; background:var(--danger);"></div></div>
+          </div>
+          <div class="meter-item">
+            <div class="meter-label"><span>⚖️ 神意与民心 (Dike)</span><span id="dike-val">50%</span></div>
+            <div class="meter-track"><div class="meter-fill" id="dike-bar" style="width:50%; background:var(--gold);"></div></div>
+          </div>
+        </div>
+        <div class="story-box" id="game-story"></div>
+        <div class="theory-note" id="game-theory"></div>
+        <div class="choices-box" id="game-choices"></div>
+      </div>
+    </section>
+
+    <!-- 模块 3：游戏二《酒神面具与三演员调度工坊》 -->
+    <section id="tab-workshop" class="tab-section">
+      <div class="game-container">
+        <div class="workshop-header">
+          <div>
+            <h2 style="color:var(--terracotta);">🎭 后台排演闯关：《酒神面具与三演员调度工坊》</h2>
+            <p style="color:var(--marble-muted); font-size:0.88rem;">古希腊严禁女性登台，且整部戏最多只能有 3 名男演员同台！请为即将登场的角色配齐正确的“演员番位 + 面具 + 战靴 + 舞台机械”。</p>
+          </div>
+          <div class="level-pills">
+            <button class="level-pill active" onclick="loadWorkshopLevel(0, this)">第一关：《俄狄浦斯王》</button>
+            <button class="level-pill" onclick="loadWorkshopLevel(1, this)">第二关：《美狄亚》终幕</button>
+            <button class="level-pill" onclick="loadWorkshopLevel(2, this)">第三关：《蛙》旧喜剧</button>
+          </div>
+        </div>
+
+        <div class="task-banner" id="ws-task-desc"></div>
+
+        <div class="workshop-grid">
+          <div class="actor-preview-card">
+            <p style="font-size:0.8rem; color:var(--gold); margin-bottom:0.5rem;">后台装束实时预览</p>
+            <div id="mask-svg-container" style="height:170px; display:flex; align-items:center; justify-content:center;"></div>
+            <div id="preview-tags" style="font-size:0.8rem; color:var(--marble-muted); margin-top:0.6rem; line-height:1.5;"></div>
+          </div>
+
+          <div>
+            <div class="config-group">
+              <h4>1. 指派演员番位（三演员法则 Three-Actor Rule）</h4>
+              <div class="option-cards" id="opt-actor"></div>
+            </div>
+            <div class="config-group">
+              <h4>2. 挑选戏剧面具（Prosopon & 发冠 Onkos）</h4>
+              <div class="option-cards" id="opt-mask"></div>
+            </div>
+            <div class="config-group">
+              <h4>3. 搭配戏剧靴与服装衬垫（Footwear & Costume）</h4>
+              <div class="option-cards" id="opt-boot"></div>
+            </div>
+            <div class="config-group">
+              <h4>4. 调度景屋后台机械（Stage Machinery）</h4>
+              <div class="option-cards" id="opt-machinery"></div>
+            </div>
+            <button class="stage-action-btn" onclick="submitStageSetup()">🎺 吹响号角，登台演出！（检验配置）</button>
+            <div class="audience-feedback" id="ws-feedback"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 模块 4 (C阶段核心升级)：AI 角色与歌队双声部互动室 -->
+    <section id="tab-chat" class="tab-section">
+      <!-- 顶部 AI 引擎状态与配置栏 -->
+      <div class="ai-config-bar">
+        <div>
+          <span class="ai-status-dot" id="ai-dot"></span>
+          <strong id="ai-mode-text" style="font-size:0.92rem;">当前模式：内置古希腊戏剧知识引擎（免 Key 离线畅玩，支持自由打字提问）</strong>
+        </div>
+        <button class="prompt-btn" onclick="toggleAiDrawer()">⚙️ 接入 DeepSeek / OpenAI 真大模型 API</button>
+      </div>
+
+      <!-- 折叠式 API 设置抽屉 -->
+      <div class="ai-drawer" id="ai-drawer">
+        <p style="font-size:0.85rem; color:var(--gold); margin-bottom:0.8rem;">
+          💡 提示：你可以直接粘贴 <strong>DeepSeek 开放平台</strong> 的 API Key，开启后每次对话将由大模型实时扮演剧中角色与古希腊歌队！（Key 仅保存在你本地浏览器中）
+        </p>
+        <div class="api-form-row">
+          <div class="form-field">
+            <label>API 接口地址 (Base URL)</label>
+            <input type="text" id="api-url" value="https://api.deepseek.com/chat/completions">
+          </div>
+          <div class="form-field">
+            <label>模型名称 (Model)</label>
+            <input type="text" id="api-model" value="deepseek-chat">
+          </div>
+          <div class="form-field">
+            <label>API Key (sk-...)</label>
+            <input type="password" id="api-key" placeholder="粘贴你的 sk-... 密钥（留空则使用内置引擎）">
+          </div>
+          <button class="stage-action-btn" style="margin:0; padding:0.55rem 1.2rem; width:auto;" onclick="saveApiConfig()">保存并激活</button>
+        </div>
+      </div>
+
+      <div class="chat-layout">
+        <!-- 左侧：6 大经典角色与圆桌群聊 -->
+        <div class="char-list">
+          <div class="char-card active" onclick="selectCharacter('oedipus', this)">
+            <span class="char-stage-tag">索福克勒斯 · 悲剧</span>
+            <h4 style="color:var(--terracotta-light);">👑 俄狄浦斯王</h4>
+            <p style="font-size:0.78rem; color:var(--marble-muted);">探讨神谕、求真意志与悲剧反讽</p>
+          </div>
+          <div class="char-card" onclick="selectCharacter('antigone', this)">
+            <span class="char-stage-tag">索福克勒斯 · 悲剧</span>
+            <h4 style="color:var(--terracotta-light);">⚖️ 安提戈涅</h4>
+            <p style="font-size:0.78rem; color:var(--marble-muted);">探讨神圣自然法与城邦人定法</p>
+          </div>
+          <div class="char-card" onclick="selectCharacter('prometheus', this)">
+            <span class="char-stage-tag">埃斯库罗斯 · 悲剧</span>
+            <h4 style="color:var(--terracotta-light);">🔥 普罗米修斯</h4>
+            <p style="font-size:0.78rem; color:var(--marble-muted);">高加索山巅的盗火者与人类启蒙</p>
+          </div>
+          <div class="char-card" onclick="selectCharacter('medea', this)">
+            <span class="char-stage-tag">欧里庇得斯 · 悲剧</span>
+            <h4 style="color:var(--terracotta-light);">🐉 美狄亚</h4>
+            <p style="font-size:0.78rem; color:var(--marble-muted);">剖析盟誓背叛与内心风暴的心理戏剧</p>
+          </div>
+          <div class="char-card" onclick="selectCharacter('dionysus', this)">
+            <span class="char-stage-tag">阿里斯托芬 · 旧喜剧</span>
+            <h4 style="color:var(--terracotta-light);">🍇 酒神狄奥尼索斯</h4>
+            <p style="font-size:0.78rem; color:var(--marble-muted);">幽默毒舌的戏剧保护神与冥界评委</p>
+          </div>
+          <div class="char-card" onclick="selectCharacter('roundtable', this)">
+            <span class="char-stage-tag">特色群聊 · 《蛙》名场面</span>
+            <h4 style="color:var(--gold);">⚔️ 三大剧作家圆桌互怼</h4>
+            <p style="font-size:0.78rem; color:var(--marble-muted);">抛一个脑洞，看埃斯库罗斯、欧里庇得斯与阿里斯托芬同台争锋！</p>
+          </div>
+        </div>
+
+        <!-- 右侧：对话主舞台 -->
+        <div class="chat-stage">
+          <div class="chat-mission">
+            <span id="chat-mission-bar"></span>
+            <button class="prompt-btn" onclick="resetCurrentChat()">🔄 清空重聊</button>
+          </div>
+          <div class="chat-messages" id="chat-box"></div>
+          <div class="quick-prompts" id="chat-options"></div>
+          <div class="chat-input-bar">
+            <input type="text" id="user-chat-input" class="chat-text-input" placeholder="在此输入你想对角色说的话，或向他们请教古希腊戏剧问题（按回车发送）..." onkeydown="if(event.key==='Enter') sendFreeMessage()">
+            <button class="chat-send-btn" onclick="sendFreeMessage()">发送台词 ➢</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- 剧目详情阅览室弹窗 -->
+  <div class="modal-overlay" id="play-modal" onclick="closeModalOnBg(event)">
+    <div class="modal-box" id="modal-content"></div>
+  </div>
+
+  <!-- 引入外部 45 部全剧数据库文件 -->
+  <script src="plays-data.js"></script>
+
+  <script>
+    // ==================== 1. 剧场空间讲解数据 ====================
+    const zoneData = {
+      theatron: {
+        title: "🏛️ 观众席 (Theatron - “观看之地”)",
+        desc: "古希腊剧场依山坡建造，呈半圆形环绕乐池，可容纳 1.4 万名观众。英语中的 Theater 正源于此词。",
+        tip: "💡 核心考点：前排大理石专座称为 Proedria，专供酒神祭司与城邦贵宾就坐。"
+      },
+      orchestra: {
+        title: "⭕ 乐池/合唱区 (Orchestra - “起舞之地”)",
+        desc: "剧场最核心的圆形平地，正中央设有酒神祭坛（Thymele）。12至15人组成的歌队（Chorus）在此随双管笛伴奏边唱边舞。",
+        tip: "💡 核心考点：歌队向右移动吟唱称为“正歌（Strophe）”，向左折返吟唱称为“反歌（Antistrophe）”，站定咏唱称为“终歌（Epode）”。"
+      },
+      skene: {
+        title: "🎭 景屋与后台 (Skene - “帐篷/背景建筑”)",
+        desc: "最初是供演员换装的木制帐篷，后演变为石造双层建筑，正面绘有宫殿或神庙布景（英语 Scene 源于此）。",
+        tip: "💡 核心考点：屋顶藏有起重悬臂机（Mechane），用于把扮演神明的演员吊在半空解决危机，这就是著名的“机械降神（Deus ex machina）”！"
+      },
+      parodos: {
+        title: "🚶 两侧入场道 (Parodos - “进场通道”)",
+        desc: "观众席与景屋之间的两条敞开通道。开场时歌队由此列队步入乐池，他们进场时唱的第一首合唱歌也叫 Parodos。",
+        tip: "💡 舞台惯例：在雅典剧场中，从右侧通道登场代表角色来自“本城或港口”，从左侧通道登场则代表来自“异国或荒野”。"
+      }
+    };
+
+    function showZoneInfo(zoneKey) {
+      const info = zoneData[zoneKey];
+      document.getElementById('zone-detail').innerHTML = `
+        <h3>${info.title}</h3>
+        <p>${info.desc}</p>
+        <p style="margin-top:0.6rem; color:var(--gold); font-size:0.85rem;">${info.tip}</p>
+      `;
+    }
+
+    // ==================== 2. 45部全剧目渲染、搜索与详情弹窗 ====================
+    let currentAuthorFilter = 'all';
+    const allPlays = typeof GREEK_PLAYS_DB !== 'undefined' ? GREEK_PLAYS_DB : [];
+
+    function setAuthorFilter(author, btn) {
+      currentAuthorFilter = author;
+      document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      applyFilters();
+    }
+
+    function applyFilters() {
+      const keyword = document.getElementById('search-box').value.trim().toLowerCase();
+      const filtered = allPlays.filter(p => {
+        const matchAuthor = currentAuthorFilter === 'all' || p.author === currentAuthorFilter;
+        const matchKeyword = !keyword ||
+          p.title.toLowerCase().includes(keyword) ||
+          p.enTitle.toLowerCase().includes(keyword) ||
+          p.characters.toLowerCase().includes(keyword) ||
+          p.desc.toLowerCase().includes(keyword) ||
+          p.plot.toLowerCase().includes(keyword) ||
+          p.examPoint.toLowerCase().includes(keyword);
+        return matchAuthor && matchKeyword;
+      });
+
+      document.getElementById('play-count-badge').innerText = `显示 ${filtered.length} / ${allPlays.length} 部`;
+      const container = document.getElementById('plays-container');
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<p style="color:var(--marble-muted); grid-column: 1/-1; padding: 2rem 0;">未找到匹配的剧目，请尝试搜索其他神话人物或关键词（如“奥德修斯”、“特洛伊”、“和平”）。</p>`;
+        return;
+      }
+
+      container.innerHTML = filtered.map(p => `
+        <div class="play-card" onclick="openPlayModal(${p.id})">
+          <div>
+            <div class="card-top-meta">
+              <span class="play-tag">${p.type} · ${p.year}</span>
+              <span class="play-id">#${String(p.id).padStart(2, '0')}</span>
+            </div>
+            <h4>${p.title}</h4>
+            <div class="play-en">${p.enTitle}</div>
+            <div class="play-author">剧作家：${p.author}</div>
+            <p class="play-desc">${p.desc}</p>
+          </div>
+          <div class="read-more-hint">📖 点击查看完整剧情与考点解析 →</div>
+        </div>
+      `).join('');
+    }
+
+    function openPlayModal(playId) {
+      const p = allPlays.find(item => item.id === playId);
+      if (!p) return;
+      document.getElementById('modal-content').innerHTML = `
+        <button class="modal-close" onclick="closePlayModal()">✕</button>
+        <span class="play-tag">${p.type} · 典藏编号 #${String(p.id).padStart(2, '0')}</span>
+        <h2 style="color:var(--terracotta-light); margin-top:0.5rem;">${p.title} <span style="font-size:1rem; color:var(--marble-muted); font-weight:normal;">(${p.enTitle})</span></h2>
+        <p style="color:var(--gold); font-size:0.95rem; margin-top:0.2rem;">✍️ 剧作家：${p.author} ｜ 🗓️ 首演年代：${p.year}</p>
+
+        <div class="modal-section">
+          <h5>🎭 主要出场角色与歌队编制</h5>
+          <p>${p.characters}</p>
+        </div>
+
+        <div class="modal-section">
+          <h5>📜 完整剧情大纲</h5>
+          <p>${p.plot}</p>
+        </div>
+
+        <div class="modal-section" style="border-left-color: var(--terracotta);">
+          <h5 style="color: var(--terracotta-light);">🎓 戏剧史地位与核心考点</h5>
+          <p>${p.examPoint}</p>
+        </div>
+      `;
+      document.getElementById('play-modal').classList.add('open');
+    }
+
+    function closePlayModal() { document.getElementById('play-modal').classList.remove('open'); }
+    function closeModalOnBg(e) { if (e.target.id === 'play-modal') closePlayModal(); }
+
+    // ==================== 3. 游戏一：《命运重写者》 ====================
+    let hubris = 30;
+    let dike = 50;
+    const gameNodes = {
+      start: {
+        story: "【第一幕：黎明前的底比斯王宫外】战役刚刚结束，新任国王克瑞翁颁布铁令：只准安葬保卫城邦的厄忒俄克勒斯，严禁任何人掩埋攻城的波吕涅刻斯。作为他们的妹妹安提戈涅，你把妹妹伊斯墨涅叫出宫门——",
+        theory: "📚 戏剧知识点【开场 Prologos】：古希腊悲剧通常以一段对话或独白开场，发生在歌队进场之前，迅速交代剧情背景与核心矛盾。",
+        choices: [
+          { text: "A. 坚定宣布：无论国王法令如何，我都要遵循神明永恒的不成文法，亲手为兄长覆土行礼！", h: +15, d: +25, next: "node2" },
+          { text: "B. 听从妹妹伊斯墨涅的劝告：我们势单力薄，应当顺从城邦掌权者的法令，在心中默默哀悼。", h: -15, d: -20, next: "ending_compromise" }
+        ]
+      },
+      node2: {
+        story: "【第二幕：大殿对峙】守卫发现了你在漫天黄沙中为兄长洒酒覆土，将你押解到国王克瑞翁面前。底比斯长老组成的歌队在一旁屏息凝视。克瑞翁怒喝道：“你明知我已颁布禁令，竟敢公然违抗？”",
+        theory: "📚 戏剧知识点【争辩场 Agon】：古希腊戏剧的核心交锋段落！双方各执一词展开针锋相对的修辞辩论，体现两种正义观的正面碰撞。",
+        choices: [
+          { text: "A. 昂首回应：“这道法令并非宙斯所颁，凡人的命令不能凌驾于诸神万古长存的律法之上！”", h: +10, d: +30, next: "node3" },
+          { text: "B. 试图用王室血缘感化克瑞翁，提醒他你的未婚夫正是他的儿子海蒙，请求法外开恩。", h: -10, d: +10, next: "ending_mediator" }
+        ]
+      },
+      node3: {
+        story: "【第三幕：先知盲叟的警告】克瑞翁一意孤行，拒绝听取儿子海蒙与民意的规劝。此时，盲眼先知忒瑞西阿斯来到王宫，警告克瑞翁他的刚愎自用（Hubris）已触怒神明。如果你此刻切换视角扮演歌队长，你会如何劝谏克瑞翁？",
+        theory: "📚 戏剧知识点【悲剧性过失 Hamartia 与 突转 Peripeteia】：悲剧主角往往并非大恶之人，而是因认知盲区或过度骄傲犯下决断失误，直到先知点破才迎来命运的急速转折。",
+        choices: [
+          { text: "A. 劝说克瑞翁立刻放下君王的自尊，亲自去撤回成命、妥善安葬逝者并迎回安提戈涅！", h: -20, d: +20, next: "ending_catharsis" },
+          { text: "B. 呼叫后台操作员拉动“机械降神（Mechane）”摇杆，让雅典娜女神从天而降强行改写结局！", h: 0, d: 0, next: "ending_deus" }
+        ]
+      },
+      ending_compromise: {
+        story: "【分支结局：沉默的顺从】你选择了保全自身，但波吕涅刻斯未能安息，底比斯城笼罩在诸神的不悦之中。戏剧冲突在开场便宣告消解，台下的雅典观众纷纷表示这出戏缺乏悲剧英雄的崇高感。",
+        theory: "🎓 复盘总结：古希腊索福克勒斯式的悲剧英雄（Sophoclean Hero）核心特质正是“宁折不弯的绝对意志”。没有坚定的抉择，就无法产生震撼人心的悲剧张力。",
+        choices: [{ text: "🔄 重新体验悲剧抉择", h: 0, d: 0, next: "reset" }]
+      },
+      ending_mediator: {
+        story: "【分支结局：城邦议会调停】在你的据理力争与海蒙的奔走下，底比斯长老歌队发起公民表决，克瑞翁迫于舆论压力收回了过激成命。这更像是一出欧里庇得斯晚期的政治辩论剧！",
+        theory: "🎓 复盘总结：你成功避免了最惨烈的冲突！在古希腊悲剧中，像埃斯库罗斯《报复女神》那样通过雅典法庭辩论实现“和解与秩序重建”也是重要的悲剧收尾范式。",
+        choices: [{ text: "🔄 重新体验原著经典路线", h: 0, d: 0, next: "reset" }]
+      },
+      ending_catharsis: {
+        story: "【经典通关：情感净化 (Catharsis)】克瑞翁终于幡然醒悟，明白了“明智才是幸福的首要源泉，对神明万不可心存傲慢”。全场一万四千名雅典公民在怜悯与敬畏中完成了心灵的净化与道德反思！",
+        theory: "🏆 完美通关！你完整经历了古希腊悲剧的黄金结构：开场(Prologos) → 进场歌(Parodos) → 场与争辩(Episode/Agon) → 突转与发现(Peripeteia/Anagnorisis) → 退场与净化(Exodos/Catharsis)。",
+        choices: [{ text: "🔄 再玩一次", h: 0, d: 0, next: "reset" }]
+      },
+      ending_deus: {
+        story: "【彩蛋结局：机械降神 (Deus ex machina)】吱呀一声巨响，景屋顶部的木制起重机把扮演神明的演员吊到了半空，一道神谕瞬间摆平了所有矛盾！台下的欧里庇得斯露出欣慰的微笑，而亚里士多德则在小本本上扣了你的结构分。",
+        theory: "🎓 复盘总结：亚里士多德在《诗学》中指出，剧情的解开应当由情节本身自然导出，而不应过度依赖“机械降神”。不过在欧里庇得斯的剧作中，这却是极具视觉冲击力的常用手法！",
+        choices: [{ text: "🔄 再玩一次", h: 0, d: 0, next: "reset" }]
+      }
+    };
+
+    function renderGameNode(nodeKey) {
+      if (nodeKey === 'reset') { hubris = 30; dike = 50; nodeKey = 'start'; }
+      const node = gameNodes[nodeKey];
+      document.getElementById('hubris-val').innerText = hubris + '%';
+      document.getElementById('hubris-bar').style.width = Math.min(100, Math.max(0, hubris)) + '%';
+      document.getElementById('dike-val').innerText = dike + '%';
+      document.getElementById('dike-bar').style.width = Math.min(100, Math.max(0, dike)) + '%';
+
+      document.getElementById('game-story').innerText = node.story;
+      document.getElementById('game-theory').innerText = node.theory;
+      document.getElementById('game-choices').innerHTML = node.choices.map(c => `
+        <button class="choice-btn" onclick="makeChoice(${c.h}, ${c.d}, '${c.next}')">${c.text}</button>
+      `).join('');
+    }
+
+    function makeChoice(hDelta, dDelta, nextKey) {
+      hubris += hDelta;
+      dike += dDelta;
+      renderGameNode(nextKey);
+    }
+
+    // ==================== 4. 游戏二：《酒神面具与三演员调度工坊》 ====================
+    const wsOptions = {
+      actors: [
+        { id: 'protagonist', name: '主役 (Protagonist)', desc: '第一男演员：饰演全剧最核心主角' },
+        { id: 'deuteragonist', name: '次役 (Deuteragonist)', desc: '第二男演员：埃斯库罗斯引入，饰演主要对手' },
+        { id: 'tritagonist', name: '三役 (Tritagonist)', desc: '第三男演员：索福克勒斯引入，一人兼饰多名配角' }
+      ],
+      masks: [
+        { id: 'tragic_king', name: '高发冠悲剧君王面具', desc: '高耸发髻(Onkos)+威严胡须+扩音悲恸嘴型' },
+        { id: 'tragic_heroine', name: '苍白高冠悲剧女主面具', desc: '白色亚麻涂装(代表女性)+高发冠+怨怒眉眼' },
+        { id: 'comic_grotesque', name: '夸张歪鼻大嘴喜剧面具', desc: '旧喜剧滑稽脸谱，咧嘴大笑，极具世俗亲和力' }
+      ],
+      boots: [
+        { id: 'kothornoi', name: '厚底高筒悲剧靴 (Kothornoi)', desc: '配华丽长袍，垫高身高以彰显悲剧英雄的崇高' },
+        { id: 'sokkos', name: '平底软鞋 (Sokkos) + 假肚腩衬垫', desc: '旧喜剧标配！塞入夸张肚腩(Somatia)与滑稽短袍' }
+      ],
+      machinery: [
+        { id: 'doors', name: '景屋正门常规出场', desc: '演员从宫殿背景大门步行走出' },
+        { id: 'ekkyklema', name: '外推旋转平台 (Ekkyklema)', desc: '从景屋推出室内场景，向观众展示宫内发生的惨剧结果' },
+        { id: 'mechane', name: '屋顶悬臂起重机 (Mechane)', desc: '将神明或飞天龙车吊在半空（机械降神）' }
+      ]
+    };
+
+    const wsLevels = [
+      {
+        title: "第一关：《俄狄浦斯王》终场——真相大白后的君王登场",
+        task: "📌 排演任务：在《俄狄浦斯王》高潮场，俄狄浦斯在宫内得知全部真相。现在需要安排 <strong>俄狄浦斯王</strong> 从宫内展现悲剧结局。请注意：此时舞台上已经有扮演伊俄卡斯忒和牧羊人的次役与三役刚刚退场，应该派哪位演员、戴什么面具、穿什么靴子、用什么机械展现室内结局？",
+        correct: { actor: 'protagonist', mask: 'tragic_king', boot: 'kothornoi', machinery: 'ekkyklema' },
+        successMsg: "🎉 完美排演！台下 14,000 名雅典观众屏息凝神！俄狄浦斯作为绝对核心由【主役】饰演，佩戴【高发冠悲剧君王面具】与【厚底悲剧靴 Kothornoi】；由于古希腊悲剧不在台前直接表演流血动作，使用【外推平台 Ekkyklema】将室内结局推出来展示是最地道的舞台调度！",
+        hintMsg: "💡 排演提示：俄狄浦斯是全剧第一主角（主役）；他是悲剧君王而非喜剧角色；且古希腊悲剧习惯用“外推平台（Ekkyklema）”将宫殿内部发生的悲剧结果推到台前展示。"
+      },
+      {
+        title: "第二关：《美狄亚》终幕——太阳神龙车升空",
+        task: "📌 排演任务：在欧里庇得斯《美狄亚》最后一幕，女主角 <strong>美狄亚</strong> 需要乘坐祖父太阳神赫利俄斯赐予的飞天龙车出现在景屋屋顶上方！请为男扮女装的美狄亚配装并调度机械：",
+        correct: { actor: 'protagonist', mask: 'tragic_heroine', boot: 'kothornoi', machinery: 'mechane' },
+        successMsg: "🎉 震撼全场！虽然美狄亚是女性，但在古希腊必须由【主役男演员】反串，佩戴【白色涂装的悲剧女主面具】与【厚底靴】，最后由景屋顶部的【悬臂起重机 Mechane】吊起龙车凌空俯视伊阿宋，这是欧里庇得斯最著名的舞台奇观！",
+        hintMsg: "💡 排演提示：美狄亚是本剧第一主角（主役反串）；需要佩戴代表女性的苍白悲剧面具与悲剧厚底靴；而“飞天龙车”必须动用屋顶的【起重机 Mechane】！"
+      },
+      {
+        title: "第三关：阿里斯托芬《蛙》——酒神划船下冥界",
+        task: "📌 排演任务：现在切换到阿里斯托芬的旧喜剧《蛙》！主角 <strong>酒神狄奥尼索斯</strong> 是个贪生怕死又爱耍宝的喜剧形象，他正准备从景屋大门走出来去找赫拉克勒斯借狮子皮。请为这位旧喜剧主角搭配最地道的喜剧行头：",
+        correct: { actor: 'protagonist', mask: 'comic_grotesque', boot: 'sokkos', machinery: 'doors' },
+        successMsg: "🎉 全场哄堂大笑！评委一致献上常春藤花冠！旧喜剧主角同样由【主役】担当，但必须换上【夸张歪鼻大嘴喜剧面具】，脚踩灵巧的【平底软鞋 Sokkos 并塞入滑稽假肚腩】，从【景屋正门】大摇大摆走出！",
+        hintMsg: "💡 排演提示：《蛙》是旧喜剧，主角是酒神（主役）；千万别给他穿沉重的悲剧高底靴或悲剧面具，应该选【喜剧面具】+【平底软鞋与假肚腩】，并从【景屋正门】常规出场。"
+      }
+    ];
+
+    let currentWsLevel = 0;
+    let userSetup = { actor: 'protagonist', mask: 'tragic_king', boot: 'kothornoi', machinery: 'doors' };
+
+    function loadWorkshopLevel(lvlIdx, btnEl) {
+      currentWsLevel = lvlIdx;
+      if (btnEl) {
+        document.querySelectorAll('.level-pill').forEach(b => b.classList.remove('active'));
+        btnEl.classList.add('active');
+      }
+      const lvl = wsLevels[lvlIdx];
+      document.getElementById('ws-task-desc').innerHTML = `
+        <h4 style="color:var(--gold); margin-bottom:0.3rem;">${lvl.title}</h4>
+        <p style="font-size:0.92rem;">${lvl.task}</p>
+      `;
+      document.getElementById('ws-feedback').className = 'audience-feedback';
+      document.getElementById('ws-feedback').innerHTML = '';
+      renderWorkshopOptions();
+      updateMaskPreview();
+    }
+
+    function renderWorkshopOptions() {
+      const bindGroup = (containerId, key, list) => {
+        document.getElementById(containerId).innerHTML = list.map(item => `
+          <div class="opt-card ${userSetup[key] === item.id ? 'selected' : ''}" onclick="selectWsOption('${key}', '${item.id}')">
+            <div>${item.name}</div>
+            <div style="font-size:0.75rem; color:var(--marble-muted); font-weight:normal; margin-top:0.2rem;">${item.desc}</div>
+          </div>
+        `).join('');
+      };
+      bindGroup('opt-actor', 'actor', wsOptions.actors);
+      bindGroup('opt-mask', 'mask', wsOptions.masks);
+      bindGroup('opt-boot', 'boot', wsOptions.boots);
+      bindGroup('opt-machinery', 'machinery', wsOptions.machinery);
+    }
+
+    function selectWsOption(key, val) {
+      userSetup[key] = val;
+      renderWorkshopOptions();
+      updateMaskPreview();
+    }
+
+    function updateMaskPreview() {
+      const svgBox = document.getElementById('mask-svg-container');
+      let maskSvg = '';
+      if (userSetup.mask === 'tragic_king') {
+        maskSvg = `
+          <svg width="130" height="160" viewBox="0 0 120 150">
+            <path d="M 25 55 Q 60 -5 95 55 Z" fill="#5c3c28" stroke="#d4af37" stroke-width="2"/>
+            <ellipse cx="60" cy="80" rx="35" ry="42" fill="#d96b27" stroke="#f4efe6" stroke-width="2"/>
+            <line x1="38" y1="62" x2="52" y2="68" stroke="#12100e" stroke-width="3"/>
+            <line x1="82" y1="62" x2="68" y2="68" stroke="#12100e" stroke-width="3"/>
+            <circle cx="45" cy="74" r="6" fill="#12100e"/>
+            <circle cx="75" cy="74" r="6" fill="#12100e"/>
+            <path d="M 42 105 Q 60 88 78 105 Z" fill="#12100e" stroke="#f4efe6" stroke-width="1.5"/>
+            <path d="M 28 95 Q 60 145 92 95" fill="none" stroke="#5c3c28" stroke-width="10"/>
+          </svg>`;
+      } else if (userSetup.mask === 'tragic_heroine') {
+        maskSvg = `
+          <svg width="130" height="160" viewBox="0 0 120 150">
+            <path d="M 20 65 Q 60 0 100 65 L 105 125 L 15 125 Z" fill="#2c221e" stroke="#d4af37" stroke-width="2"/>
+            <ellipse cx="60" cy="82" rx="32" ry="38" fill="#f4efe6" stroke="#d96b27" stroke-width="2"/>
+            <line x1="40" y1="68" x2="54" y2="63" stroke="#12100e" stroke-width="2.5"/>
+            <line x1="80" y1="68" x2="66" y2="63" stroke="#12100e" stroke-width="2.5"/>
+            <circle cx="46" cy="75" r="5.5" fill="#12100e"/>
+            <circle cx="74" cy="75" r="5.5" fill="#12100e"/>
+            <ellipse cx="60" cy="102" rx="14" ry="8" fill="#12100e"/>
+          </svg>`;
+      } else {
+        maskSvg = `
+          <svg width="130" height="160" viewBox="0 0 120 150">
+            <ellipse cx="60" cy="42" rx="38" ry="12" fill="#5a9e6f"/>
+            <circle cx="60" cy="82" r="38" fill="#e68a49" stroke="#d4af37" stroke-width="2"/>
+            <path d="M 35 60 Q 45 50 55 62" fill="none" stroke="#12100e" stroke-width="3"/>
+            <path d="M 65 62 Q 75 50 85 60" fill="none" stroke="#12100e" stroke-width="3"/>
+            <circle cx="45" cy="70" r="6" fill="#12100e"/>
+            <circle cx="75" cy="70" r="7" fill="#12100e"/>
+            <ellipse cx="62" cy="80" rx="8" ry="6" fill="#c94a4a"/>
+            <path d="M 32 90 Q 60 125 88 90 Z" fill="#12100e" stroke="#f4efe6" stroke-width="2"/>
+          </svg>`;
+      }
+      svgBox.innerHTML = maskSvg;
+
+      const actorObj = wsOptions.actors.find(a => a.id === userSetup.actor);
+      const bootObj = wsOptions.boots.find(b => b.id === userSetup.boot);
+      const machObj = wsOptions.machinery.find(m => m.id === userSetup.machinery);
+      document.getElementById('preview-tags').innerHTML = `
+        <div>👤 <strong>番位：</strong>${actorObj.name}</div>
+        <div>👢 <strong>鞋服：</strong>${bootObj.name}</div>
+        <div>⚙️ <strong>调度：</strong>${machObj.name}</div>
+      `;
+    }
+
+    function submitStageSetup() {
+      const lvl = wsLevels[currentWsLevel];
+      const fb = document.getElementById('ws-feedback');
+      const isCorrect =
+        userSetup.actor === lvl.correct.actor &&
+        userSetup.mask === lvl.correct.mask &&
+        userSetup.boot === lvl.correct.boot &&
+        userSetup.machinery === lvl.correct.machinery;
+
+      if (isCorrect) {
+        fb.className = 'audience-feedback pass';
+        fb.innerHTML = `<h4>🏆 演出大获成功！</h4><p style="margin-top:0.4rem;">${lvl.successMsg}</p>`;
+      } else {
+        fb.className = 'audience-feedback fail';
+        fb.innerHTML = `<h4>🍅 台下雅典观众扔来了无花果！配置有误：</h4><p style="margin-top:0.4rem;">${lvl.hintMsg}</p>`;
+      }
+    }
+
+    // ==================== 5. C阶段核心：AI 角色与歌队双模式互动系统 ====================
+    let currentCharKey = 'oedipus';
+    let apiConfig = {
+      url: localStorage.getItem('greek_api_url') || 'https://api.deepseek.com/chat/completions',
+      model: localStorage.getItem('greek_api_model') || 'deepseek-chat',
+      key: localStorage.getItem('greek_api_key') || ''
+    };
+
+    const charScripts = {
+      oedipus: {
+        name: "俄狄浦斯王",
+        systemPrompt: "你是索福克勒斯悲剧《俄狄浦斯王》中的底比斯国王俄狄浦斯。你极具智慧（曾解开斯芬克斯之谜）、深爱城邦子民，但性情急躁且带有对自身理性的过度自信。请用庄重、威严的古希腊戏剧台词风格回答用户提问。",
+        chorusRole: "底比斯长老歌队",
+        mission: "🎯 互动目标：向俄狄浦斯王探讨“智慧与命运”的关系，观察戏剧反讽（Dramatic Irony）。",
+        greeting: "我是解开斯芬克斯之谜的俄狄浦斯！底比斯的公民啊，为了查清城邦瘟疫的根源，无论真相藏在何处，我都必将追查到底！",
+        chorus: "【底比斯长老歌队吟唱】：智慧的君王曾拯救城邦，但凡人若以为自己的双眼能看透阿波罗的神谕，往往正站在命运的悬崖边……（注：观众已知真相而剧中人不知，即为“悲剧性反讽”）",
+        prompts: [
+          {
+            q: "陛下，如果追查真相的终点会颠覆您自己的人生，您还会继续吗？",
+            reply: "绝不退缩！我俄狄浦斯既然身为城邦的舵手，怎能因畏惧未知的传言而掩耳盗铃？哪怕真相与我的身世相连，我也定要揭开谜底！",
+            chorusTip: "【歌队伴唱 & 知识点】：听到他说的“身世”了吗？在《俄狄浦斯王》中，主角强烈的求真意志恰恰是推动悲剧一步步成真的引擎！"
+          },
+          {
+            q: "先知忒瑞西阿斯虽然双目失明，但他似乎比明眼人更清楚神谕的指向？",
+            reply: "哼！那个盲眼老者只会说些模棱两可的谜语！当年恶兽斯芬克斯盘踞城外时，靠的还不是我俄狄浦斯的头脑才解开了谜题？",
+            chorusTip: "【歌队伴唱 & 知识点】：索福克勒斯在此处运用了经典的“明与盲（Sight vs. Blindness）”意象对比——双目失明的先知洞悉真理，而双目健全的国王此时却对真相视而不见。"
+          }
+        ]
+      },
+      antigone: {
+        name: "安提戈涅",
+        systemPrompt: "你是索福克勒斯悲剧《安提戈涅》中的女主角安提戈涅。你坚信诸神永恒的不成文法（神圣自然法与家庭伦理）高于凡人君王克瑞翁颁布的城邦政令，性格宁折不弯、崇高坚定。",
+        chorusRole: "底比斯长老歌队",
+        mission: "🎯 互动目标：与安提戈涅辩论“神圣家庭伦理（Philia）”与“城邦法令（Nomos）”究竟孰轻孰重。",
+        greeting: "纵使克瑞翁下达了严酷的禁令，我也绝不会让我的兄长暴尸荒野。因为凡人的命令，绝不能凌驾于诸神万古长存的不成文律法之上！",
+        chorus: "【底比斯长老歌队吟唱】：世界上有许多奇妙的事物，但没有一件比人更奇妙！只是这少女继承了俄狄浦斯家族不屈的烈性，不懂得向风暴低头……",
+        prompts: [
+          {
+            q: "安提戈涅，妹妹伊斯墨涅劝你顺从城邦法令以保全性命，你为何拒绝？",
+            reply: "伊斯墨涅选择了活着，而我选择了践行对亲人与冥神的正义！我生来是为了同爱，而不是为了同恨（Οὔτοι συνέχθειν, ἀλλὰ συμφιλεῖν ἔφυν）！",
+            chorusTip: "【歌队伴唱 & 知识点】：“我生来是为了同爱，而非同恨”是《安提戈涅》中最著名的人文主义金句，体现了超越政治仇恨的永恒伦理价值。"
+          },
+          {
+            q: "你认为克瑞翁维护城邦秩序的初衷错在哪里？",
+            reply: "城邦固然需要秩序，但若一位统治者以为整个城邦只属于他一人，甚至践踏对逝者最基本的敬畏，那他所统治的便只是一座荒凉的沙漠！",
+            chorusTip: "【歌队伴唱 & 知识点】：哲学家黑格尔在《美学》中指出，《安提戈涅》展现了“家庭伦理”与“国家政权”两种具有各自合理性的道德力量之间的悲剧性冲突。"
+          }
+        ]
+      },
+      prometheus: {
+        name: "普罗米修斯",
+        systemPrompt: "你是埃斯库罗斯悲剧《被缚的普罗米修斯》中的泰坦神普罗米修斯。你因将天火与文明技艺传授给人类而被锁在高加索山崖，面对宙斯的强权威逼绝不屈服，语言宏大崇高。",
+        chorusRole: "大洋神女歌队",
+        mission: "🎯 互动目标：与普罗米修斯探讨他为何甘受锁链之苦也要把火种与百工技艺传给人类。",
+        greeting: "看吧，群山与大海的波涛！只因我怜悯凡人，将天火与百工技艺赠予人类，宙斯便将我锁在这荒凉的悬崖之上。但我绝不会用屈膝换取解脱！",
+        chorus: "【大洋神女歌队吟唱】：我们乘着轻风飞来高加索之巅，为你的遭遇叹息！但与奥林匹斯的新君主抗衡，是何等艰难的道路啊！",
+        prompts: [
+          {
+            q: "普罗米修斯，除了火种，您还赐予了人类什么最重要的东西？",
+            reply: "我不仅给了他们取暖锻铁的火种，更把“盲目的希望”安置在他们心中，使他们不再因预见终局而绝望；我还教会他们天文、算术、文字、航海与医药——人类的一切文明技艺皆源于普罗米修斯！",
+            chorusTip: "【歌队伴唱 & 知识点】：“普罗米修斯（Prometheus）”在古希腊语中意为“先见之明”。埃斯库罗斯通过这段台词，讴歌了雅典黄金时代对人类理性与文明进步的礼赞。"
+          },
+          {
+            q: "如果向宙斯妥协就能立刻解开锁链，您为什么拒绝赫尔墨斯的劝降？",
+            reply: "让我去像奴仆一样向强权摇尾乞怜？绝无可能！我宁肯被锁在这块岩石上，也绝不作宙斯忠顺的差役！",
+            chorusTip: "【歌队伴唱 & 知识点】：这句经典台词展现了古希腊悲剧崇高抗争精神的巅峰写照。"
+          }
+        ]
+      },
+      medea: {
+        name: "美狄亚",
+        systemPrompt: "你是欧里庇得斯悲剧《美狄亚》中的科尔喀斯公主美狄亚。你聪明果决、擅长思辨，曾为伊阿宋夺取金羊毛倾尽所有，却在科林斯遭到伊阿宋背弃。请用富有心理张力与修辞力量的语言回应，探讨盟誓、正义与古希腊女性处境（注意保持艺术探讨的优雅与克制）。",
+        chorusRole: "科林斯妇女歌队",
+        mission: "🎯 互动目标：倾听美狄亚对伊阿宋虚伪诡辩的反击，体会欧里庇得斯式“心理剖析悲剧”的震撼力。",
+        greeting: "科林斯的妇女们啊！世上一切有生命、有思想的万物之中，我们女人最受委屈。我曾为伊阿宋背井离乡、助他夺取金羊毛，如今他却为了攀附权贵背弃神圣的誓言！",
+        chorus: "【科林斯妇女歌队吟唱】：河水倒流回源头，人间的正义与盟誓已经颠倒！男人们的巧言令色再也无法取信于诸神……",
+        prompts: [
+          {
+            q: "伊阿宋辩解说他迎娶科林斯公主是为了给你们母子谋求更好的生活，您怎么看？",
+            reply: "多么无耻的巧言令色！倘若他真是为了我们好，为何要瞒着我秘密联姻，甚至任由科林斯国王将我们母子驱逐出境？一个骨子里背信弃义的人，越是擅长辞令，便越发显得卑劣！",
+            chorusTip: "【歌队伴唱 & 知识点】：在《美狄亚》的争辩场（Agon）中，欧里庇得斯刻意让伊阿宋使用当时雅典流行的“诡辩术（Sophistry）”，以此揭露功利主义对神圣誓言的侵蚀。"
+          },
+          {
+            q: "欧里庇得斯为什么借您的口说出那段关于古希腊女性处境的著名独白？",
+            reply: "因为男人们总说我们在家里过着没有危险的生活，而他们却要提着长矛上战场；他们算错了！我宁可三次拿着盾牌站在战阵里，也不愿承受被困在异乡、孤立无援的屈辱！",
+            chorusTip: "【歌队伴唱 & 知识点】：这段台词是西方戏剧史上最早为女性发声的经典文献之一，展现了欧里庇得斯超越时代的同理心与社会批判视角。"
+          }
+        ]
+      },
+      dionysus: {
+        name: "酒神狄奥尼索斯",
+        systemPrompt: "你是阿里斯托芬旧喜剧《蛙》中的主角酒神狄奥尼索斯。你既是古希腊戏剧的保护神，又是一个风趣幽默、爱吐槽、精通雅典全套45部戏剧内幕的戏迷评审官。",
+        chorusRole: "冥界青蛙歌队",
+        mission: "🎯 互动目标：参与阿里斯托芬《蛙》中的冥界文学评审会，听酒神幽默点评古希腊戏剧内幕！",
+        greeting: "哎哟喂，划船过冥河可把本神的胳膊都磨出泡了！自从欧里庇得斯去世后，雅典连个能写出好戏的诗人都找不着，我只好亲自下冥界把大剧作家带回人间啦！",
+        chorus: "【冥界青蛙歌队合唱】：Brekekekex koax koax！呱呱呱！欢迎来到阿里斯托芬的旧喜剧舞台，这里允许肆无忌惮地吐槽一切名流与文豪！",
+        prompts: [
+          {
+            q: "酒神大人，在您眼里埃斯库罗斯和欧里庇得斯的剧本有什么区别？",
+            reply: "哈哈哈，拿把大天平一称就知道啦！埃斯库罗斯的词句像花岗岩一样沉甸甸，张口就是战车、盾牌与山岳，培养的是保家卫国的猛士；而欧里庇得斯那家伙，专教雅典人耍嘴皮子、研究角色心理，不过台词真是机智迷人啊！",
+            chorusTip: "【歌队伴唱 & 知识点】：在《蛙》的后半部分，阿里斯托芬真的在舞台上摆了一架大天平，让两位悲剧大师对飙诗句“称重量”，这是西方戏剧史上最早、最有趣的文学批评名场面！"
+          },
+          {
+            q: "为什么古希腊不管是悲剧还是喜剧，都要在您的节庆（大酒神节）上演呢？",
+            reply: "因为唯有本神的葡萄美酒与狂喜精神，才能让人们暂时卸下日常的身份束缚，戴上面具去化身君王、英雄、飞鸟甚至青蛙，在欢笑与泪水中看清人性的真相呀！",
+            chorusTip: "【歌队伴唱 & 知识点】：戏剧起源于崇拜酒神的“酒神赞美歌（Dithyramb）”。公元前534年，泰斯庇斯（Thespis）率先从歌队中走出来扮演第一个角色，标志着西方戏剧的正式诞生！"
+          }
+        ]
+      },
+      roundtable: {
+        name: "三大剧作家圆桌群聊",
+        systemPrompt: "你需要同时扮演三位古希腊剧作家进行圆桌争鸣：1.【埃斯库罗斯】（庄严宏大，讲求神意与英雄气概）；2.【欧里庇得斯】（犀利写实，喜爱剖析心理与使用机械降神）；3.【阿里斯托芬】（脑洞大开，毒舌搞笑的旧喜剧之王）。当用户输入任何现代话题或问题时，请让这三位大师依次从各自的戏剧流派角度发表看法或改写剧本，并互相调侃！",
+        chorusRole: "雅典大酒神节十部落评委团",
+        mission: "🎯 互动玩法：在下方输入框随便抛一个现代脑洞（如“大学生期末赶DDL”或“人工智能觉醒”），看三位大师如何同台改写并互怼！",
+        greeting: "【埃斯库罗斯】：戏剧当如战鼓雷鸣，教导公民敬畏神律！<br>【欧里庇得斯】：得了吧老前辈，整天把角色写成不食人间烟火的石雕有什么意思？要写普通人的内心挣扎！<br>【阿里斯托芬】：哈哈哈哈，你们俩别吵了，快让今天这位观众出个题目，看咱们仨谁改写得最精彩！",
+        chorus: "【大酒神节评委团合唱】：常春藤花冠已经备好！请在下方输入任意现代话题或戏剧问题，见证三大文豪的跨时空交锋！",
+        prompts: [
+          {
+            q: "如果把“现代打工人/学生熬夜赶DDL”写成古希腊戏剧，你们仨会怎么写？",
+            reply: "【埃斯库罗斯】：我将写一部三联剧《被缚的赶稿人》！主角因盗取智慧火种在午夜孤灯下奋笔疾书，面对死线之神（Chronos）的雷霆威逼绝不屈服！<br><br>【欧里庇得斯】：太夸张了！我要写主角在凌晨三点盯着空白文档时的心理撕裂独白——一边是理性的计划，一边是拖延的本能，最后实在写不完，只能拉动“机械降神”让断网停电强行解围！<br><br>【阿里斯托芬】：哈哈哈！我直接写男主角骑着一只巨大的咖啡豆飞上奥林匹斯山，把掌管死线的神明关进笼子，顺便在云端建一个“免作业乌托邦”！",
+            chorusTip: "【评委团批注】：短短一道题，完美展示了埃斯库罗斯的“崇高抗争”、欧里庇得斯的“心理写实+机械降神”与阿里斯托芬的“荒诞政治乌托邦”三大流派精髓！"
+          }
+        ]
+      }
+    };
+
+    function updateAiStatusBar() {
+      const dot = document.getElementById('ai-dot');
+      const txt = document.getElementById('ai-mode-text');
+      if (apiConfig.key && apiConfig.key.trim().length > 5) {
+        dot.className = 'ai-status-dot online';
+        txt.innerText = `当前模式：🟢 已连接真 AI 大模型 (${apiConfig.model}) · 实时双声部生成中`;
+      } else {
+        dot.className = 'ai-status-dot';
+        txt.innerText = `当前模式：🟡 内置古希腊戏剧知识引擎（免 Key 离线畅玩，点击右侧可接入 DeepSeek API）`;
+      }
+    }
+
+    function toggleAiDrawer() {
+      const drawer = document.getElementById('ai-drawer');
+      drawer.classList.toggle('open');
+      document.getElementById('api-url').value = apiConfig.url;
+      document.getElementById('api-model').value = apiConfig.model;
+      document.getElementById('api-key').value = apiConfig.key;
+    }
+
+    function saveApiConfig() {
+      apiConfig.url = document.getElementById('api-url').value.trim();
+      apiConfig.model = document.getElementById('api-model').value.trim();
+      apiConfig.key = document.getElementById('api-key').value.trim();
+      localStorage.setItem('greek_api_url', apiConfig.url);
+      localStorage.setItem('greek_api_model', apiConfig.model);
+      localStorage.setItem('greek_api_key', apiConfig.key);
+      updateAiStatusBar();
+      document.getElementById('ai-drawer').classList.remove('open');
+    }
+
+    function selectCharacter(charKey, cardEl) {
+      currentCharKey = charKey;
+      if (cardEl) {
+        document.querySelectorAll('.char-card').forEach(c => c.classList.remove('active'));
+        cardEl.classList.add('active');
+      }
+      const data = charScripts[charKey];
+      document.getElementById('chat-mission-bar').innerText = data.mission;
+      document.getElementById('chat-box').innerHTML = `
+        <div class="msg npc">${data.greeting}</div>
+        <div class="msg chorus">${data.chorus}</div>
+      `;
+      document.getElementById('chat-options').innerHTML = data.prompts.map((p, idx) => `
+        <button class="prompt-btn" onclick="triggerDialogue('${charKey}', ${idx})">💬 快捷提问：${p.q}</button>
+      `).join('');
+    }
+
+    function resetCurrentChat() {
+      selectCharacter(currentCharKey, null);
+    }
+
+    function triggerDialogue(charKey, idx) {
+      const item = charScripts[charKey].prompts[idx];
+      appendChatTurn(item.q, item.reply, item.chorusTip);
+    }
+
+    function appendChatTurn(userText, npcReplyHtml, chorusTipHtml) {
+      const box = document.getElementById('chat-box');
+      box.innerHTML += `
+        <div class="msg user">${userText}</div>
+        <div class="msg npc">${npcReplyHtml}</div>
+        <div class="msg chorus">${chorusTipHtml}</div>
+      `;
+      box.scrollTop = box.scrollHeight;
+    }
+
+    // 处理用户自由打字提问（自动判断走真 AI 还是内置智能引擎）
+    async function sendFreeMessage() {
+      const inputEl = document.getElementById('user-chat-input');
+      const text = inputEl.value.trim();
+      if (!text) return;
+      inputEl.value = '';
+
+      const box = document.getElementById('chat-box');
+      const charData = charScripts[currentCharKey];
+
+      // 如果配置了 API Key，调用大模型接口
+      if (apiConfig.key && apiConfig.key.length > 5) {
+        const loadingId = 'loading-' + Date.now();
+        box.innerHTML += `
+          <div class="msg user">${text}</div>
+          <div class="msg npc" id="${loadingId}">🎭 ${charData.name} 正在组织古希腊诗行回应...</div>
+        `;
+        box.scrollTop = box.scrollHeight;
+
+        try {
+          const sysPrompt = `${charData.systemPrompt}
+请你务必严格以 JSON 格式返回两个字段（不要包裹在 markdown 代码块中，直接输出合法 JSON）：
+{
+  "character_reply": "你作为该角色的台词回应（支持使用 <br> 换行，保持古希腊戏剧张力）",
+  "chorus_chant": "【${charData.chorusRole}伴唱 & 知识点】：先用一句半诗化的歌队评述回应刚才的对话，再附带解释一个相关的古希腊戏剧专业知识点"
+}`;
+          const res = await fetch(apiConfig.url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${apiConfig.key}`
+            },
+            body: JSON.stringify({
+              model: apiConfig.model,
+              messages: [
+                { role: 'system', content: sysPrompt },
+                { role: 'user', content: text }
+              ],
+              temperature: 0.8
+            })
+          });
+          const data = await res.json();
+          const rawContent = data.choices[0].message.content.trim();
+          const cleanJson = rawContent.replace(/^```json\s*/i, '').replace(/```$/i, '').trim();
+          let parsed;
+          try {
+            parsed = JSON.parse(cleanJson);
+          } catch (e) {
+            parsed = {
+              character_reply: rawContent,
+              chorus_chant: `【${charData.chorusRole}伴唱】：智慧的话语在剧场回荡！（提示：AI 已实时响应）`
+            };
+          }
+          document.getElementById(loadingId).outerHTML = `
+            <div class="msg npc">${parsed.character_reply}</div>
+            <div class="msg chorus">${parsed.chorus_chant}</div>
+          `;
+          box.scrollTop = box.scrollHeight;
+          return;
+        } catch (err) {
+          document.getElementById(loadingId).remove();
+          // 若 API 调用失败，自动平滑降级到内置智能引擎
+        }
+      }
+
+      // 内置离线古希腊戏剧智能问答引擎（免 Key 保底）
+      const offlineResult = generateSmartOfflineReply(currentCharKey, text);
+      appendChatTurn(text, offlineResult.reply, offlineResult.chorus);
+    }
+
+    function generateSmartOfflineReply(charKey, userText) {
+      const charData = charScripts[charKey];
+      // 1. 先检索是否提到了 45 部数据库中的某部具体戏剧或作家
+      const matchedPlay = allPlays.find(p =>
+        userText.includes(p.title.replace(/《|》/g, '')) ||
+        userText.includes(p.author)
+      );
+
+      if (matchedPlay) {
+        return {
+          reply: `【${charData.name}】：你提到了<strong>${matchedPlay.author}</strong>创作于${matchedPlay.year}的传世名作<strong>${matchedPlay.title}</strong>！在这部${matchedPlay.type}中，${matchedPlay.plot}`,
+          chorus: `【${charData.chorusRole}伴唱 & 考点速递】：关于${matchedPlay.title}，你一定要记住这个核心考点——${matchedPlay.examPoint}`
+        };
+      }
+
+      // 2. 如果是圆桌群聊模式，针对任意用户输入自动生成三位大师的三段式改编！
+      if (charKey === 'roundtable') {
+        return {
+          reply: `【埃斯库罗斯】：把“<strong>${userText}</strong>”写成悲剧，就必须展现凡人面对宏大宿命时的崇高抉择，让歌队奏响庄严的战歌！<br><br>【欧里庇得斯】：不不不，关于“<strong>${userText}</strong>”，最精彩的一定是主角在深夜陷入两难时的真实心理剖析；如果矛盾实在解不开，我就在结尾安排“机械降神”从天而降！<br><br>【阿里斯托芬】：哈哈哈！要我说，直接围绕“<strong>${userText}</strong>”建一个云端乌托邦，把雅典那些爱吹牛的政客和诡辩学者全都拉上舞台挨个吐槽一遍！`,
+          chorus: `【评委团合唱 & 知识点】：无论面对什么题材，埃斯库罗斯重“神意与崇高”，欧里庇得斯重“心理与写实”，阿里斯托芬重“荒诞讽刺与乌托邦”！（💡 点击右上角接入 DeepSeek API，还能解锁无限自由生成！）`
+        };
+      }
+
+      // 3. 角色专属风味回应
+      const roleFlavors = {
+        oedipus: {
+          reply: `底比斯的访客，你所说的“${userText}”令我深思。正如同我当年在三岔路口与斯芬克斯面前所做的决断一样，凡人纵有再高的智慧，也必须在追寻真相的道路上直面阿波罗的神谕！`,
+          chorus: `【底比斯长老歌队】：君王的话语充满坚毅，而在古希腊悲剧中，主角因认知局限而犯下的“悲剧性过失（Hamartia）”往往正是引发“突转（Peripeteia）”的导火索。`
+        },
+        antigone: {
+          reply: `关于“${userText}”，我的内心早已有了决断。世俗的权势或许能暂时压制真理，但诸神镌刻在人心中的永恒道义绝不会因凡人的政令而改变！`,
+          chorus: `【底比斯长老歌队】：安提戈涅始终坚守着神圣自然法（Physis）对人定法（Nomos）的优先权，这是理解本剧争辩场（Agon）的核心钥匙。`
+        },
+        prometheus: {
+          reply: `纵使高加索的暴风雪席卷而来，你所探寻的“${userText}”正如我当年赐予人类的火种与理性技艺一样珍贵。只要人类还怀有希望与求知欲，任何强权都无法扑灭文明之火！`,
+          chorus: `【大洋神女歌队】：在埃斯库罗斯的笔下，普罗米修斯不仅是盗火者，更是人类科学、文字、医药与戏剧艺术的启蒙导师。`
+        },
+        medea: {
+          reply: `你问起“${userText}”？在科林斯的王宫之外，我看清了太多用华丽辞令包装的背叛。当理智与烈火般的情感在胸中交战，唯有真正直面痛苦的人才能听懂我的独白。`,
+          chorus: `【科林斯妇女歌队】：欧里庇得斯被誉为“舞台上的哲学家”，他笔下的角色不再是盲从宿命的提线木偶，而是具有复杂心理动机的鲜活个体。`
+        },
+        dionysus: {
+          reply: `哈哈！说到“${userText}”，这可真是个绝妙的戏剧点子！要是放在我们雅典大酒神节的露天剧场上演，一万四千名观众准会一边吃着无花果一边为你鼓掌叫好！`,
+          chorus: `【冥界青蛙歌队】：Brekekekex koax koax！别忘了，你随时可以在右上角填入你的 DeepSeek API Key，让我们开启无限制的实时深度对话！`
+        }
+      };
+
+      return roleFlavors[charKey];
+    }
+
+    function switchTab(tabId, btn) {
+      document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      btn.classList.add('active');
+    }
+
+    // 初始化所有模块
+    applyFilters();
+    renderGameNode('start');
+    loadWorkshopLevel(0);
+    updateAiStatusBar();
+    selectCharacter('oedipus', document.querySelector('.char-card'));
+  </script>
+</body>
+</html>
